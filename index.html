@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DarkPlayz</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+  <style>
+    * {margin:0;padding:0;box-sizing:border-box}
+    body {
+      background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
+      color: #fff;
+      font-family: 'Poppins', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      text-align:center;
+      padding:20px 10px;
+      position: relative;
+    }
+    header h1 {
+      font-size:2.5rem;
+      color:#00ffe7;
+      text-shadow:0 0 10px #00ffe7;
+    }
+    header p {
+      font-size:1rem;
+      color:#ccc;
+      margin-top:10px;
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 100%;
+      border-bottom: 2px solid #00ffe7;
+    }
+    .screen {flex:1;display:none;padding:10px;overflow-y:auto;}
+    .screen.active {display:block;}
+
+    #postList {display:flex;flex-direction:column;gap:15px;margin-top:10px;}
+    .postCard {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid #00ffe7;
+      box-shadow: 0 0 10px #00ffe7;
+      border-radius: 10px;
+      padding: 15px;
+      transition: transform 0.3s ease;
+    }
+    .postCard:hover {transform:translateY(-5px);}
+
+    .bottom-nav {
+      height:60px;
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      display:flex;
+      align-items:center;
+      justify-content:space-around;
+      border-top:1px solid #00ffe7;
+    }
+    .bottom-nav button {
+      background:none;
+      border:none;
+      color:#00ffe7;
+      font-size:24px;
+      cursor:pointer;
+    }
+    .add {
+      font-size:40px;
+      background:#00ffe7;
+      color:#000;
+      border-radius:50%;
+      width:60px;
+      height:60px;
+      box-shadow:0 0 15px #00ffe7, 0 0 30px #00ffe7;
+      margin-top:-30px;
+    }
+
+    .popup {
+      position:fixed;top:0;left:0;width:100%;height:100%;
+      background:rgba(0,0,0,0.7);
+      display:flex;align-items:center;justify-content:center;
+      z-index:1000;
+    }
+    .popup-content {
+      background:#222;padding:20px;border-radius:10px;width:90%;max-width:400px;text-align:center;
+    }
+    .popup-content input,.popup-content textarea {
+      width:100%;padding:10px;margin:10px 0;border:none;border-radius:5px;
+    }
+    .popup-content button {
+      margin:5px;padding:10px 20px;
+      background:#00ffe7;border:none;border-radius:5px;cursor:pointer;
+    }
+    .hidden {display:none;}
+
+    #tournamentTable {
+      width:100%;border-collapse:collapse;margin-top:20px;
+    }
+    #tournamentTable th,#tournamentTable td {
+      border:1px solid #00ffe7;padding:8px;text-align:center;
+    }
+    #tournamentTable th {
+      background:#00ffe7;color:black;
+    }
+    .scroll-area {max-height:80vh;overflow-y:auto;}
+
+    .social-links {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 20px;
+      opacity: 0.4;
+    }
+    .social-links a {
+      text-decoration: none;
+      color: #00ffe7;
+      font-size: 1.5rem;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>DarkPlayz</h1>
+  <p>A gaming e-sport team</p>
+  <div class="social-links">
+    <a href="https://www.youtube.com/@nayeemplayz180" target="_blank">YouTube</a>
+    <a href="https://www.facebook.com/yourpage" target="_blank">Facebook</a>
+    <a href="https://www.tiktok.com/@yourprofile" target="_blank">TikTok</a>
+  </div>
+</header>
+
+<main id="homeScreen" class="screen active">
+  <div id="postList" class="scroll-area"></div>
+</main>
+
+<main id="scheduleScreen" class="screen">
+  <table id="tournamentTable">
+    <thead>
+      <tr>
+        <th>Event</th>
+        <th>Game</th>
+        <th>ID Pass</th>
+        <th>Start</th>
+        <th>Prize</th>
+        <th>Edit</th>
+      </tr>
+    </thead>
+    <tbody id="tournamentBody"></tbody>
+  </table>
+</main>
+
+<div class="bottom-nav">
+  <button id="homeBtn">🏠</button>
+  <button id="addBtn" class="add">+</button>
+  <button id="scheduleBtn">📅</button>
+</div>
+
+<!-- Popup Form -->
+<div id="popupForm" class="popup hidden">
+  <div class="popup-content">
+    <h2>Add New Post</h2>
+    <input type="text" id="username" placeholder="Your Name">
+    <input type="text" id="title" placeholder="Post Title">
+    <textarea id="caption" placeholder="Post Caption"></textarea>
+    <button id="submitPost">Submit</button>
+    <button id="closePopup">Cancel</button>
+  </div>
+</div>
+
+<script>
+  // Ensure localStorage is cleared before using it
+  localStorage.setItem('posts', JSON.stringify([])); // Clear previous data
+
+  // Switch Screens
+  const homeScreen = document.getElementById('homeScreen');
+  const scheduleScreen = document.getElementById('scheduleScreen');
+  document.getElementById('homeBtn').onclick = () => {
+    homeScreen.classList.add('active');
+    scheduleScreen.classList.remove('active');
+  };
+  document.getElementById('scheduleBtn').onclick = () => {
+    scheduleScreen.classList.add('active');
+    homeScreen.classList.remove('active');
+  };
+
+  // Popup Control
+  const popup = document.getElementById('popupForm');
+  document.getElementById('addBtn').onclick = () => popup.classList.remove('hidden');
+  document.getElementById('closePopup').onclick = () => popup.classList.add('hidden');
+
+  // Add Post
+  document.getElementById('submitPost').onclick = () => {
+    const username = document.getElementById('username').value;
+    const title = document.getElementById('title').value;
+    const caption = document.getElementById('caption').value;
+    const timestamp = new Date().toLocaleString();
+
+    if(username && title && caption){
+      // Get posts from localStorage or initialize empty array
+      const posts = JSON.parse(localStorage.getItem('posts')) || [];
+      
+      // Add new post to the array
+      posts.push({ username, title, caption, time: timestamp });
+
+      // Save updated posts to localStorage
+      localStorage.setItem('posts', JSON.stringify(posts));
+
+      // Clear the form and hide the popup
+      popup.classList.add('hidden');
+      document.getElementById('username').value = '';
+      document.getElementById('title').value = '';
+      document.getElementById('caption').value = '';
+      loadPosts(); // Reload posts after adding a new one
+    } else {
+      alert('Please fill all fields!');
+    }
+  };
+
+  // Load Posts from localStorage
+  function loadPosts() {
+    const postList = document.getElementById('postList');
+    postList.innerHTML = '';
+    const posts = JSON.parse(localStorage.getItem('posts')) || [];
+    posts.forEach(post => {
+      const div = document.createElement('div');
+      div.className = 'postCard';
+      div.innerHTML = `
+        <h3>${post.title}</h3>
+        <p><strong>@${post.username}</strong> | ${post.time}</p>
+        <p>${post.caption}</p>
+      `;
+      postList.appendChild(div);
+    });
+  }
+
+  // Load posts initially
+  loadPosts();
+
+  // Load Tournament Dummy Rows
+  const tournamentBody = document.getElementById('tournamentBody');
+  for (let i = 0; i < 10; i++) {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td contenteditable="true">Event ${i+1}</td>
+      <td contenteditable="true">Game ${i+1}</td>
+      <td contenteditable="true">ID ${i+1}</td>
+      <td contenteditable="true">Start Time</td>
+      <td contenteditable="true">Prize ${i+1}</td>
+      <td><button onclick="saveTournament(this)">Save</button></td>
+    `;
+    tournamentBody.appendChild(row);
+  }
+
+  function saveTournament(btn) {
+    btn.innerText = "Saved!";
+    setTimeout(() => {
+      btn.innerText = "Save";
+    }, 2000);
+  }
+</script>
+
+</body>
+</html>
